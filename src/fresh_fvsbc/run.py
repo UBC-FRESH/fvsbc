@@ -160,7 +160,9 @@ def database_path(directory: str | Path) -> Path:
     Returns
     -------
     Path
-        ``directory/FVSOut.db``, which is the name ``dbsblkd.f`` fixes.
+        ``directory/FVSOut.db``, the **default** ``DSNOUT`` that ``dbsblkd.f`` initialises. A
+        keyword set carrying a ``DATABASE`` block with a ``DSNOUT`` option names another, and this
+        function does not read it; the route this module runs carries no such block.
     """
     return Path(directory) / DATABASE_NAME
 

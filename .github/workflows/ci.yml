@@ -75,6 +75,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             gfortran meson ninja-build patchelf
+          # The compiler version is provenance: a build that produces different numbers from the
+          # oracle needs to be told apart from one that does not, and until now nothing recorded it.
+          gfortran --version | head -1
+          nproc
+          grep -m1 "model name" /proc/cpuinfo || true
 
       - name: Install the build requirements
         run: |
@@ -110,12 +115,19 @@ jobs:
           python -c "import pyfvs.fvsbc as m; print('imported', m.__name__)"
           python -c "import pyfvs; print(pyfvs.list_variants())"
 
-      # The end-to-end test skips in the quality job, because that job has no extension. This is the
-      # one place it can run, so it runs here rather than being a skip nobody ever converts.
-      - name: Run the end-to-end run test
+      # These skip in the quality job, which has no extension. This job has the extension and FVS's
+      # own case data in one place, so they run here rather than being skips nobody ever converts.
+      #
+      # test_oracle.py first ran here beside test_run.py and failed on 104 of 164 rows. The cause was
+      # not the toolchain: FVS keeps its state in the process, so a case run after another projection
+      # produces different numbers. The test now runs its case in a child process, and it passes in
+      # either order.
+      - name: Run the tests that need the extension
+        env:
+          FVSBC_CASE_DIR: ${{ runner.temp }}/PyFVS/fvs/tests/FVSbc
         run: |
           python -m pip install --quiet pytest pandas
-          python -m pytest tests/test_run.py -q -o addopts="" -p no:cacheprovider
+          python -m pytest tests/test_run.py tests/test_oracle.py -q -o addopts="" -p no:cacheprovider
 
   dashboard:
     name: Green dashboard summary
@@ -125,33 +137,50 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v5
 
-      - name: Set up Python
+      # Both interpreters, because P3's seventh criterion says the dashboard exits zero on both and
+      # the script used to run on 3.12 only. The job's name is deliberately unchanged: matrixing it
+      # would rename the required context, and P2 records a protection change that dropped two.
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
 
-      - name: Install dev requirements
+      - name: Install the dev requirements for both
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements-dev.txt
+          for version in 3.11 3.12; do
+            "python$version" -m pip install --upgrade pip
+            "python$version" -m pip install -r requirements-dev.txt
+          done
 
-      - name: Run the dashboard
+      - name: Run the dashboard on both versions
         shell: bash
         run: |
           set +e
           mkdir -p runtime
-          python scripts/dashboard.py --markdown --json runtime/dashboard.json > runtime/dashboard.md
-          status=$?
-          cat runtime/dashboard.md >> "$GITHUB_STEP_SUMMARY"
-          exit $status
+          status=0
+          for version in 3.11 3.12; do
+            echo "### Dashboard on Python $version" >> "$GITHUB_STEP_SUMMARY"
+            "python$version" scripts/dashboard.py --markdown \
+              --json "runtime/dashboard-$version.json" > "runtime/dashboard-$version.md"
+            code=$?
+            cat "runtime/dashboard-$version.md" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$code" -ne 0 ]; then status="$code"; fi
+          done
+          exit "$status"
 
-      - name: Upload the dashboard record
+      - name: Upload the dashboard records
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: dashboard-record
-          path: runtime/dashboard.json
+          path: runtime/
 
   pre-commit:
     name: Pre-commit parity

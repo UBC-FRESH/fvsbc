@@ -60,11 +60,16 @@ Contract rules
    (ADR 0008, ADR 0009). The summary is taken from `FVS.summary` in memory, and it is also written as a
    fixed-width report beside the database.
 
-   The database's **name is fixed**: ``dbsqlite/dbsblkd.f`` has ``DATA DSNOUT/"FVSOut.db"``, so it
-   lands in the run's working directory under that name whatever the keyword file is called, and two
-   runs in one directory overwrite each other's database. A run therefore owns its directory. The
-   orchestration changes into it for the projection and restores the caller's directory afterwards,
-   which makes a run process-global rather than thread-safe.
+   The database's name is **a default, not a fixture**: ``dbsqlite/dbsblkd.f`` initialises ``DSNOUT``
+   to ``"FVSOut.db"``, and a ``DATABASE`` block may replace it with a ``DSNOut`` option, which
+   ``dbsqlite/dbsin.f`` reads. The official case does exactly that, naming
+   ``FVS-BC.Stand.Structure.Out.db``. So the name is a property of the keyword set. A run that does
+   not name one gets ``FVSOut.db`` in its working directory, whatever the keyword file is called, and
+   two such runs in one directory overwrite each other's database. A run therefore owns its
+   directory: the orchestration changes into it for the projection and restores the caller's
+   directory afterwards, which makes a run process-global rather than thread-safe. **An earlier
+   revision of this page said the name was fixed**, which the oracle test disproved the first time it
+   ran.
 2. A parsed table is returned as a dataframe whose column names are the database's column names.
    `fresh-fvsbc` does not rename a column to something friendlier, because a rename breaks the trace back to
    the FVS schema. `pandas` is a dependency for this reason, and it is the project's only runtime one. An
@@ -77,6 +82,13 @@ Contract rules
    outside the model's range writes an `FVS03 WARNING` row, which is not a failure. So a run is reported as
    failed when it holds a row *of severity* `ERROR`, whatever the other tables contain, and its warnings are
    returned rather than discarded.
+
+   **The table's presence is not guaranteed either.** A ``DATABASE`` block names the tables a run
+   writes, and the official case's block does not name `FVS_Error`, so that run writes **no such
+   table**: "the run writes no error rows" is then true because there is nothing to hold one. The
+   reader treats an absent table as a failure to read, which is right for this project's route, where
+   the extension writes the table on every run, and it is not a claim about FVS in general. The oracle
+   test records which of the two it found.
 
 Not verified
 ------------

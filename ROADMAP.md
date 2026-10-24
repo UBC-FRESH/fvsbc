@@ -12,7 +12,7 @@ Every phase starts as `planned` with `Parent issue: TBD`. Activate a phase only 
 | P1 Scope and design | #5 | `feature/p1-scope-design` | complete |
 | P2 Contracts and prototype | #10 | `feature/p2-contracts-prototype` | complete |
 | P3 Build | #17 | `feature/p3-build` | complete |
-| P4 Verify | TBD | `feature/p4-verify` | planned |
+| P4 Verify | #25 | `feature/p4-verify` | active |
 | P5 Release and deploy | TBD | `feature/p5-release` | planned |
 | P6 Operate and maintain | TBD | `feature/p6-operate` | planned |
 
@@ -186,17 +186,39 @@ Acceptance criteria:
 
 ## Phase 4: Verify
 
-Parent issue: TBD
+Parent issue: #25
 Branch: `feature/p4-verify`
-Status: planned
+Status: active
 
 Goal: show that the build meets its acceptance criteria, and record the evidence in the changelog.
 
-- [ ] P4.1 Run the acceptance checks and record the evidence
+The detail for this phase is the focused plan `notes/p4-verify.md`, which carries each task's sections,
+the phase criteria, the order and its reason, and the open proposals.
+
+- [x] P4.1 The acceptance checks, from a clean checkout (#26)
+  - [x] Build the variant from the pin in a clean checkout, and record the command, the exit status, and the import.
+  - [x] Run the full suite there, and record the count and the skips with their reasons.
+  - [x] Run the command on the synthetic population, and record the exit status and the outputs.
+  - [x] Record each of `P3`'s seven criteria with the evidence that produces it.
+- [x] P4.2 Promote the oracle comparison into a repository test (#27)
+  - [x] Establish where the official case data comes from, and whether it may be committed, with its licence.
+  - [x] Write the comparison as a repository test, skipping with a recorded reason when the data or the build is absent.
+  - [x] Record the result, including the stands and rows it covers and the columns it does not.
+- [x] P4.3 Make the dashboard's 3.11 evidence literal (#28) — both interpreters in the existing job, chosen by the maintainer, so no protection change
+  - [x] Choose between running the script under both interpreters in the existing job and renaming the context with protection changed in the same approved move.
+  - [x] Write the change and the protection change, with its exact command, as a proposal.
+  - [x] After approval, run it and read the protection back.
+- [x] P4.4 Close the `__all__` gap (#29) — **its premise was false**: the assertion exists since `6e99a41`, so the task became proving it can fail
+  - [x] Add a mutation the harness catches, so the existing assertion's falsifiability is reproducible.
+  - [x] Assert that `__all__` holds no duplicate, which nothing else checks.
 
 Acceptance criteria:
 
-- <State the criterion that shows this phase met its goal.>
+- Each of `P3`'s seven acceptance criteria has evidence recorded in the changelog, with the command or run id that produces it.
+- The oracle comparison runs from the repository against the committed or fetched case data, and its result is recorded.
+- `python scripts/dashboard.py` exits zero on 3.11 and 3.12 in CI, with the protection contexts still matching the four the workflow spec names.
+- Every name in the package's `__all__` resolves, asserted by a test.
+- `python scripts/dashboard.py` exits zero on the head commit of the phase branch.
 
 ## Phase 5: Release and deploy
 

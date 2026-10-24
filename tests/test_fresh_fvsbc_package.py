@@ -40,5 +40,11 @@ def test_package_documents_itself() -> None:
 
 
 def test_package_exports_only_names_it_defines() -> None:
-    """Every name in ``__all__`` exists on the package."""
+    """Every name in ``__all__`` exists on the package.
+
+    Sortedness is not asserted here: ruff's ``RUF022`` enforces it in the lint gate, and it has
+    fired on this file when names were added out of order. A duplicate is not a defect, but it is a
+    smell nothing else checks, so that one is asserted.
+    """
     assert all(hasattr(fresh_fvsbc, name) for name in fresh_fvsbc.__all__)
+    assert len(set(fresh_fvsbc.__all__)) == len(fresh_fvsbc.__all__)

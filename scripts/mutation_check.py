@@ -157,6 +157,13 @@ MUTATIONS: tuple[Mutation, ...] = (
         test="tests/test_keywords.py::test_the_intended_spelling_is_refused_and_points_at_the_table",
     ),
     Mutation(
+        identifier="package-exports-a-name-it-does-not-define",
+        module="src/fresh_fvsbc/__init__.py",
+        find='    "write_tree_record",',
+        replace='    "write_tree_records",',
+        test="tests/test_fresh_fvsbc_package.py::test_package_exports_only_names_it_defines",
+    ),
+    Mutation(
         identifier="command-reports-a-failed-run-as-bad-input",
         module="src/fresh_fvsbc/cli.py",
         find="        return EXIT_FAILED_RUN",
